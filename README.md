@@ -150,8 +150,14 @@ Após iniciar a solução:
 | Risk Analysis  | https://localhost:5001/swagger |
 | API Gateway    | https://localhost:5002/swagger |
 
-## Observações
+## Observações da solução
 
 * Cada serviço possui banco de dados próprio.
 * A comunicação entre serviços ocorre de forma assíncrona via RabbitMQ.
 * Os detalhes de implementação, endpoints e regras de negócio estão documentados nos READMEs específicos de cada projeto.
+
+## Integrantes
+Ana Clara Melo - RM 559021
+David Murillo de Oliveira Soares - RM 559078
+Lucas Serrano - RM555170
+Yasmin Gonçalves Coelho - RM 559147
