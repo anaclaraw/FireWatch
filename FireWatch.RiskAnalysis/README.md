@@ -1,5 +1,5 @@
 
-# FireWatch · Risk Analysis Service
+# FireWatch.Risk Analysis Service
 
 Microsserviço ASP.NET 8 responsável por consumir eventos de dados espaciais do barramento RabbitMQ, calcular o score de risco de queimada por região geográfica e expor os resultados via API REST.
 
@@ -26,58 +26,21 @@ Microsserviço ASP.NET 8 responsável por consumir eventos de dados espaciais do
 
 ## 1. Problema abordado
 
-Focos de calor detectados por satélites (NASA FIRMS / INPE) geram volumes massivos de dados brutos — coordenadas geográficas, brilho radiativo, FRP (Fire Radiative Power) e índice de confiança. Por si só, esses dados não comunicam risco de forma acionável para gestores de defesa civil ou analistas ambientais.
+Focos de calor detectados por satélites (NASA FIRMS) geram volumes massivos de dados brutos como coordenadas geográficas, brilho radiativo, FRP e índice de confiança. Por si só, esses dados não comunicam risco de forma acionável para gestores de defesa civil ou analistas ambientais.
 
-O problema central é **transformar leituras brutas de sensores remotos em um score de risco quantificado por região**, de forma automatizada e em tempo próximo ao real, permitindo que sistemas downstream (alertas, dashboards, mobile) reajam a situações críticas sem necessidade de análise manual.
+O problema central é **transformar leituras brutas de sensores remotos em um score de risco quantificado por região**, de forma automatizada e em tempo próximo ao real, permitindo que sistemas downstream (alertas, e  mobile) reajam a situações críticas sem necessidade de análise manual.
 
 ---
 
 ## 2. Objetivo do serviço
 
-O **Risk Analysis Service** tem responsabilidade única dentro da solução FireWatch:
+O **Risk Analysis Service** tem responsabilidade única dentro da solução FireWatch: Receber eventos de dados espaciais via mensageria, aplicar um algoritmo de scoring ponderado sobre os atributos do foco de calor, persistir o resultado e manter um resumo atualizado de risco por região.
 
-> Receber eventos de dados espaciais via mensageria, aplicar um algoritmo de scoring ponderado sobre os atributos do foco de calor, persistir o resultado e manter um resumo atualizado de risco por região.
-
-Adicionalmente, expõe uma API REST para consulta dos assessments históricos e para ingestão manual de registros (útil para testes e integração com ferramentas externas).
+Adicionalmente, expõe uma API REST para consulta dos assessments históricos e para ingestão manual de registros .
 
 ---
 
-## 3. Arquitetura e posição na solução
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        FireWatch Solution                       │
-│                                                                 │
-│  ┌──────────────────┐    ┌──────────────────────────────────┐  │
-│  │  Data Ingestion  │───▶│         RabbitMQ                 │  │
-│  │  Service         │    │  Exchange: firewatch.events       │  │
-│  │                  │    │  Routing:  firewatch.spatial.     │  │
-│  │  NASA FIRMS      │    │            received               │  │
-│  │  INPE API        │    └──────────────┬───────────────────┘  │
-│  │  Open-Meteo      │                   │                       │
-│  └──────────────────┘                   │ consume               │
-│                                         ▼                       │
-│                          ┌──────────────────────────┐          │
-│                          │  Risk Analysis Service   │◀── REST  │
-│                          │  (este serviço)           │          │
-│                          │                           │          │
-│                          │  • Score ponderado        │          │
-│                          │  • Classificação BR-XX    │          │
-│                          │  • Resumo por região      │          │
-│                          │                           │          │
-│                          │  PostgreSQL               │          │
-│                          │  risk_assessments         │          │
-│                          │  region_risk_summaries    │          │
-│                          └──────────────┬────────────┘          │
-│                                         │                       │
-│                          ┌──────────────▼────────────┐          │
-│                          │       API Gateway         │          │
-│                          │  (YARP / outro serviço)   │          │
-│                          └───────────────────────────┘          │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-O serviço é **puramente reativo**: não puxa dados ativamente. Toda ingestão ocorre via mensagem entregue pelo RabbitMQ. A única exceção é o endpoint `POST /api/risk/analyze`, que permite análise manual sob demanda.
+Esse serviço é **puramente reativo**: não puxa dados ativamente. Toda ingestão ocorre via mensagem entregue pelo RabbitMQ. A única exceção é o endpoint `POST /api/risk/analyze`, que permite análise manual sob demanda.
 
 ---
 
@@ -101,16 +64,16 @@ FireWatch.RiskAnalysis/
 │   └── SpatialDataReceivedEvent.cs # Contrato do evento recebido
 │
 ├── Middlaware/
-│   └── GlobalExceptionMiddleware.cs # Intercepta exceções não tratadas
+│   └── GlobalExceptionMiddleware.cs # Intercepta exceções contendo tratamento personalizado para as principais
 │
 ├── Models/
-│   ├── RiskAssessment.cs           # Entidade principal + enum RiskLevel
+│   ├── RiskAssessment.cs           # Entidade principal e enum RiskLevel
 │   └── RegionRiskSummary.cs        # Agregado de risco por região
 │
 ├── Services/
 │   ├── Interfaces/
 │   │   └── IRiskService.cs         # Contrato da camada de serviço
-│   └── RiskService.cs              # Lógica de negócio + scoring
+│   └── RiskService.cs              # Lógica de negócio e scoring
 │
 ├── Validators/
 │   └── RiskAnalysisRequestValidator.cs  # FluentValidation para ManualRiskRequest
@@ -124,15 +87,15 @@ FireWatch.RiskAnalysis/
 
 ## 5. Componentes e responsabilidades
 
-### `RabbitMQConsumer` — camada de entrada assíncrona
+### `RabbitMQConsumer` camada de entrada assíncrona
 
 `BackgroundService` que é iniciado junto com a aplicação e mantém uma conexão persistente com o RabbitMQ.
 
 Responsabilidades:
-- Declarar o exchange `firewatch.events` (topic, durable) e a fila `firewatch.risk.analysis`
+- Declarar o exchange `firewatch.events`  e a fila `firewatch.risk.analysis`
 - Fazer o bind com routing key `firewatch.spatial.received`
 - Configurar `prefetchCount: 1` para processamento sequencial e controle de pressão
-- Deserializar o payload JSON para `SpatialDataReceivedEvent`
+- Deserializar o payload para `SpatialDataReceivedEvent`
 - Delegar o processamento para `IRiskService.AssessAsync`
 - Emitir `BasicAck` em caso de sucesso ou `BasicNack` com `requeue: true` em caso de exceção (garantia de reentrega)
 - Reconectar automaticamente com retry em caso de falha de conexão (backoff de 5 segundos)
@@ -143,7 +106,7 @@ Mensagem chega
       ▼
 Deserializa JSON → SpatialDataReceivedEvent
       │
-      ├── null? ──▶ BasicNack (requeue: false) — mensagem descartada
+      ├── null? ──▶ BasicNack (requeue: false) mensagem descartada
       │
       ▼
 Cria scope de DI → resolve IRiskService
@@ -155,25 +118,25 @@ AssessAsync(event)
       └── exceção  ──▶ BasicNack (requeue: true) + log de erro
 ```
 
-### `RiskService` — núcleo de negócio
+### `RiskService` centro da regra de negócio
 
 Implementa `IRiskService`. Recebe o evento, executa o algoritmo de scoring, persiste o resultado e atualiza o resumo da região.
 
-Não possui dependências em infraestrutura de mensageria — opera apenas sobre `RiskDbContext` e `ILogger`. Isso o torna facilmente testável de forma isolada.
+Não possui dependências em infraestrutura de mensageria opera apenas sobre `RiskDbContext` e `ILogger`. Isso o torna facilmente testável de forma isolada.
 
-### `RiskController` — interface HTTP
+### `RiskController` interface HTTP
 
-Controller REST com 5 endpoints documentados via Swagger/OpenAPI. Mapeia requests HTTP para chamadas ao `IRiskService`. Não contém lógica de negócio.
+Controller REST com 5 endpoints documentados via Swagger. Mapeia requests HTTP para chamadas ao `IRiskService`. Não contém lógica de negócio.
 
-### `GlobalExceptionMiddleware` — barreira de erro
+### `GlobalExceptionMiddleware` barreira de erro
 
 Registrado no topo do pipeline, captura qualquer exceção não tratada e retorna uma resposta JSON padronizada com `errorCode: "INTERNAL_ERROR"`, evitando que stack traces vazem para o cliente.
 
-### `ManualRiskRequestValidator` — validação de entrada
+### `ManualRiskRequestValidator` validação de entrada
 
 Validador FluentValidation registrado via `AddFluentValidationAutoValidation()`. Valida bounds geográficos, ranges físicos dos atributos e o campo `DayNight`. Retorna `400 Bad Request` automaticamente antes de o controller ser invocado.
 
-### `RiskDbContext` — acesso a dados
+### `RiskDbContext` acesso a dados
 
 DbContext EF Core com dois `DbSet`:
 - `RiskAssessments` → tabela `risk_assessments`
@@ -243,61 +206,10 @@ A região é inferida a partir das coordenadas via pattern matching sobre faixas
 | `BR-RS`  | Rio Grande do Sul   | lat [-34, -30], lon [-54, -49]          |
 | `BR-XX`  | Região desconhecida | fora das faixas acima                   |
 
-> Limitação conhecida: as faixas são retangulares e podem se sobrepor ou deixar lacunas em regiões limítrofes. A evolução natural é substituir por uma lookup geoespacial via PostGIS.
 
----
 
-## 7. Fluxo principal da aplicação
 
-### Fluxo assíncrono (RabbitMQ)
-
-```
-[DataIngestion Service]
-    │
-    │  publica JSON em firewatch.events
-    │  routing key: firewatch.spatial.received
-    ▼
-[RabbitMQ broker]
-    │
-    │  entrega para fila firewatch.risk.analysis
-    ▼
-[RabbitMQConsumer.OnMessageReceived]
-    │
-    ├─ deserializa → SpatialDataReceivedEvent
-    │
-    ├─ resolve IRiskService via DI scope
-    │
-    ▼
-[RiskService.AssessAsync]
-    │
-    ├─ ResolveRegionCode(lat, lon)         → "BR-MT"
-    │
-    ├─ Normalize(Brightness, 300, 420)     → brightScore
-    ├─ Normalize(Frp, 0, 500)             → frpScore
-    ├─ Confidence                          → confScore
-    ├─ CountAsync(region, últimas 24h)    → densityScore
-    │
-    ├─ score = ponderação → Clamp → Round
-    │
-    ├─ ClassifyRisk(score)                → RiskLevel
-    │
-    ├─ new RiskAssessment { ... }
-    ├─ _db.RiskAssessments.Add(assessment)
-    ├─ SaveChangesAsync()
-    │
-    ├─ UpdateRegionSummaryAsync(region)
-    │     ├─ agrega últimas 24h: avg, max, count
-    │     ├─ upsert em RegionRiskSummary
-    │     └─ SaveChangesAsync()
-    │
-    └─ LogInformation(score, level, region, frp)
-         │
-         ▼
-[RabbitMQConsumer]
-    └─ BasicAck → mensagem removida da fila
-```
-
-### Fluxo síncrono (REST manual)
+### Fluxo síncrono (parte REST)
 
 ```
 POST /api/risk/analyze
@@ -313,7 +225,7 @@ RiskController.Analyze
     ├─ RecordId = Guid.NewGuid()
     │
     ▼
-RiskService.AssessAsync (mesmo fluxo acima)
+RiskService.AssessAsync 
     │
     └─ retorna RiskAssessmentResponse → 200 OK
 ```
@@ -324,7 +236,7 @@ RiskService.AssessAsync (mesmo fluxo acima)
 
 ### `IRiskService`
 
-Interface que define o contrato público do serviço de negócio. O controller e o consumer dependem apenas desta abstração, nunca da implementação concreta `RiskService`.
+Interface que define o contrato do `RiskSevice`. 
 
 ```csharp
 public interface IRiskService
@@ -346,7 +258,6 @@ public interface IRiskService
 }
 ```
 
-O uso de `IReadOnlyList<T>` nos retornos sinaliza que o chamador não deve mutar a coleção.
 
 ### `SpatialDataReceivedEvent`
 
@@ -369,11 +280,11 @@ public record SpatialDataReceivedEvent(
 
 ### DTOs de resposta
 
-`RiskAssessmentResponse` e `RegionSummaryResponse` são records usados exclusivamente para a camada de apresentação HTTP. A entidade `RiskAssessment` nunca é exposta diretamente pela API.
+`RiskAssessmentResponse` e `RegionSummaryResponse` são records usados exclusivamente para a camada de apresentação HTTP. 
 
 ---
 
-## 9. Modelo de dados
+## 9. Estrutura do Banco de dados
 
 ### Tabela `risk_assessments`
 
@@ -422,40 +333,6 @@ A documentação interativa está disponível em `/` (Swagger UI configurado com
 ### `POST /analyze`
 Analisa manualmente um registro espacial e retorna o score calculado.
 
-**Body:**
-```json
-{
-  "latitude": -12.64,
-  "longitude": -55.42,
-  "brightness": 367.5,
-  "frp": 120.3,
-  "confidence": 85.0,
-  "source": "NASA_FIRMS",
-  "dayNight": "D",
-  "acquiredAt": "2024-07-15T14:30:00Z"
-}
-```
-
-**Response 200:**
-```json
-{
-  "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-  "sourceRecordId": "...",
-  "latitude": -12.64,
-  "longitude": -55.42,
-  "brightness": 367.5,
-  "frp": 120.3,
-  "confidence": 85.0,
-  "source": "NASA_FIRMS",
-  "dayNight": "D",
-  "riskScore": 62.47,
-  "riskLevel": "High",
-  "regionCode": "BR-MT",
-  "acquiredAt": "2024-07-15T14:30:00Z",
-  "createdAt": "2024-07-15T14:30:01Z"
-}
-```
-
 **Response 400** — validação FluentValidation falhou.
 
 ### `GET /region/{regionCode}?from=&to=`
@@ -496,20 +373,7 @@ Registrado como primeiro middleware no pipeline. Captura qualquer `Exception` n�
 
 O erro completo (incluindo stack trace) é logado via `ILogger` mas nunca exposto ao cliente.
 
-### Consumer AMQP — tratamento por mensagem
 
-Cada mensagem é processada dentro de um bloco `try/catch` individual:
-
-| Situação                        | Ação                                         |
-|---------------------------------|----------------------------------------------|
-| Evento desserializado com sucesso e processado | `BasicAck` — remove da fila |
-| JSON nulo ou inválido           | `BasicNack(requeue: false)` — descarta para evitar loop infinito |
-| Exceção durante `AssessAsync`   | `BasicNack(requeue: true)` — devolve à fila para reprocessamento |
-| Falha de conexão com RabbitMQ   | Retry com espera de 5 segundos, indefinidamente |
-
-O uso de `prefetchCount: 1` garante que a fila não seja vaziada antes que cada mensagem seja confirmada, evitando perda de dados em caso de crash.
-
----
 
 ## 12. Validação de entrada
 
@@ -545,7 +409,7 @@ Regras aplicadas sobre `ManualRiskRequest`:
 }
 ```
 
-### Pacotes NuGet
+### Pacotes NuGet 
 
 | Pacote                                 | Versão  | Finalidade                              |
 |----------------------------------------|---------|-----------------------------------------|
@@ -553,26 +417,9 @@ Regras aplicadas sobre `ManualRiskRequest`:
 | `Npgsql.EntityFrameworkCore.PostgreSQL`| 8.x     | Provider PostgreSQL para EF Core        |
 | `RabbitMQ.Client`                      | 7.x     | Client AMQP para consumo de mensagens   |
 | `FluentValidation.AspNetCore`          | 11.x    | Validação declarativa de requests       |
-| `Swashbuckle.AspNetCore`               | 6.x     | Geração de Swagger/OpenAPI              |
+| `Swashbuckle.AspNetCore`               | 6.x     | Geração de Swagger
 
-### Registro de dependências (`Program.cs`)
 
-```
-DbContext (Scoped)
-  └── RiskDbContext → Npgsql
-
-Services (Scoped)
-  └── IRiskService → RiskService
-
-Hosted Services (Singleton)
-  └── RabbitMQConsumer (BackgroundService)
-
-Validation (automático via Assembly scan)
-  └── ManualRiskRequestValidator
-
-Middleware Pipeline
-  └── GlobalExceptionMiddleware → Swagger → Authorization → Controllers
-```
 
 ---
 
@@ -606,7 +453,7 @@ dotnet run
 ```
 
 O serviço irá:
-1. Conectar ao PostgreSQL e executar `EnsureCreatedAsync` (em ambiente Development)
+1. Conectar ao PostgreSQL e executar `EnsureCreatedAsync` 
 2. Iniciar o `RabbitMQConsumer` em background
 3. Disponibilizar a API em `http://localhost:5000` com Swagger em `/`
 
@@ -627,14 +474,4 @@ curl -X POST http://localhost:5000/api/risk/analyze \
   }'
 ```
 
----
 
-## Observações técnicas
-
-**`DateTime` e PostgreSQL:** o campo `AcquiredAt` deve ser enviado em UTC (`Kind = DateTimeKind.Utc`). O Npgsql rejeita `DateTimeKind.Unspecified` em colunas `timestamptz`. Se dados externos chegarem sem o sufixo `Z`, normalize com `DateTime.SpecifyKind(dt, DateTimeKind.Utc)` antes de persistir.
-
-**Scope de DI no consumer:** o `RabbitMQConsumer` é registrado como `Singleton` (comportamento de `BackgroundService`), mas `RiskService` e `RiskDbContext` são `Scoped`. Por isso o consumer usa `IServiceScopeFactory.CreateScope()` por mensagem — garantindo que o DbContext seja criado e descartado a cada processamento, evitando vazamento de estado entre mensagens.
-
-**Resolução de região:** a implementação atual usa pattern matching cartesiano sobre faixas lat/lon. Para produção, recomenda-se integração com PostGIS (extensão geoespacial do PostgreSQL) e uma tabela de polígonos de estados brasileiros, eliminando ambiguidades em regiões limítrofes.
-
-**Janela de densidade:** o `densityScore` conta focos nas últimas 24 horas usando `AcquiredAt` do evento como referência temporal, não `DateTime.UtcNow`. Isso torna o resultado determinístico para reprocessamento de mensagens antigas.
