@@ -1,0 +1,10 @@
+﻿global using FireWatch.DataIngestion.Application.DTOs;
+global using FireWatch.DataIngestion.Application.Eventos;
+global using FireWatch.DataIngestion.Application.Interfaces;
+global using FireWatch.DataIngestion.Application.Services;
+global using FireWatch.DataIngestion.Domain.Entities;
+global using FireWatch.DataIngestion.Domain.Enums;
+global using FireWatch.DataIngestion.Domain.Exceptions;
+global using FireWatch.DataIngestion.Domain.Interfaces;
+global using FireWatch.DataIngestion.Domain.ValueObjects;
+global using Microsoft.Extensions.Logging;

@@ -1,0 +1,15 @@
+﻿global using System.IdentityModel.Tokens.Jwt;
+global using System.Security.Claims;
+global using System.Security.Cryptography;
+global using System.Text;
+global using System.Threading.RateLimiting;
+global using FireWatch.Gateway.Data;
+global using FireWatch.Gateway.DTOs;
+global using FireWatch.Gateway.Models;
+global using FireWatch.Gateway.Services;
+global using FluentValidation;
+global using Microsoft.AspNetCore.Authorization;
+global using Microsoft.AspNetCore.Mvc;
+global using Microsoft.AspNetCore.RateLimiting;
+global using Microsoft.EntityFrameworkCore;
+global using Microsoft.IdentityModel.Tokens;

@@ -1,0 +1,13 @@
+﻿global using System.Text;
+global using System.Text.Json;
+global using FireWatch.RiskAnalysis.Data;
+global using FireWatch.RiskAnalysis.DTOs;
+global using FireWatch.RiskAnalysis.Messaging;
+global using FireWatch.RiskAnalysis.Models;
+global using FireWatch.RiskAnalysis.Services;
+global using FireWatch.RiskAnalysis.Services.Interfaces;
+global using FluentValidation;
+global using Microsoft.AspNetCore.Mvc;
+global using Microsoft.EntityFrameworkCore;
+global using RabbitMQ.Client;
+global using RabbitMQ.Client.Events;
