@@ -1,4 +1,4 @@
-# FireWatch — API Gateway
+# FireWatch.API Gateway
 
 Gateway central do ecossistema FireWatch. Responsável por autenticação JWT, roteamento de requests para os serviços internos via YARP, rate limiting e CORS.
 
@@ -7,6 +7,23 @@ Gateway central do ecossistema FireWatch. Responsável por autenticação JWT, r
 ## Visão Geral
 
 O API Gateway é o único ponto de entrada para clientes externos (app mobile, dashboard web, parceiros). Ele valida o token JWT antes de repassar qualquer request para os serviços internos, garantindo que nenhum serviço fique exposto diretamente.
+
+```
+Cliente (Mobile / Dashboard / Parceiro)
+              ↓
+       FireWatch Gateway :5002
+              ↓
+    ┌─────────────────────┐
+    │  Auth Module (JWT)  │  ← POST /auth/login, /register, /refresh
+    │  Rate Limiter       │  
+    │  YARP Proxy         │  
+    └─────────────────────┘
+              ↓
+   ┌──────────────────────────┐
+   │ Data Ingestion  :5000    │  
+   │ Risk Analysis   :5001    │  
+   └──────────────────────────┘
+```
 
 ---
 
@@ -32,12 +49,12 @@ FireWatch.Gateway/
 ├── Controllers/
 │   └── AuthController.cs         # Register, Login, Refresh, Revoke, Me
 ├── Data/
-│   └── GatewayDbContext.cs       # Contexto EF Core
+│   └── GatewayDbContext.cs       # Contexto EF 
 ├── DTOs/
 │   ├── In/
 │   │   └── LoginRequest.cs       # LoginRequest, RegisterRequest, RefreshRequest
 │   └── Out/
-│       └── AuthResponse.cs       # AuthResponse
+│       └── AuthResponse.cs       
 ├── Middlewares/
 │   ├── GlobalExceptionMiddleware.cs
 │   └── RequestLoggingMiddleware.cs
@@ -162,54 +179,14 @@ Swagger disponível em: `http://localhost:5002`
 
 ### POST `/auth/register`
 
-```json
-{
-  "name": "Ana Silva",
-  "email": "ana@firewatch.com",
-  "password": "senha123"
-}
-```
+
 
 ### POST `/auth/login`
 
-```json
-{
-  "email": "ana@firewatch.com",
-  "password": "senha123"
-}
-```
 
-**Resposta:**
-
-```json
-{
-  "accessToken": "eyJhbGciOiJIUzI1NiIs...",
-  "refreshToken": "base64-string...",
-  "expiresAt": "2024-06-01T15:30:00Z",
-  "role": "Viewer",
-  "name": "Ana Silva"
-}
-```
 
 ### POST `/auth/refresh`
 
-```json
-{
-  "refreshToken": "base64-string..."
-}
-```
-
-### POST `/auth/revoke`
-
-```
-Authorization: Bearer {accessToken}
-```
-
-```json
-{
-  "refreshToken": "base64-string..."
-}
-```
 
 ---
 
@@ -221,7 +198,6 @@ O Gateway repassa automaticamente requests autenticadas para os serviços intern
 |---|---|---|
 | `/api/ingestion/*` | Data Ingestion Service | 5000 |
 | `/api/risk/*` | Risk Analysis Service | 5001 |
-| `/api/alerts/*` | Alert Service | 5003 |
 
 **Todas as rotas do proxy exigem Bearer token válido.**
 
@@ -254,7 +230,7 @@ Quando o limite é atingido, retorna `429 Too Many Requests`:
 | `Analyst` | Pode disparar ingestões |
 | `Admin` | Acesso total |
 
-> Roles são atribuídas manualmente no banco por enquanto. Endpoint de gerenciamento de roles será adicionado futuramente.
+> Roles são atribuídas manualmente no banco por enquanto. 
 
 ---
 
@@ -295,11 +271,9 @@ Todos os erros passam pelo `GlobalExceptionMiddleware` e retornam o formato padr
 
 ```bash
 ConnectionStrings__Postgres="Host=...;Database=firewatch_gateway;..."
-Jwt__Secret="chave-secreta-longa-e-aleatoria-minimo-32-chars"
+Jwt__Secret="chave-jwt-xxxxx-xxxx-xxx-xxxx"
 Jwt__Issuer="firewatch-gateway"
 Jwt__Audience="firewatch-clients"
 Jwt__ExpiresInMinutes="60"
 Jwt__RefreshExpiresInDays="7"
 ```
-
-> Em produção, nunca exponha o `Jwt__Secret` no código. Use variáveis de ambiente ou Azure Key Vault.
