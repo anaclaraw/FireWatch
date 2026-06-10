@@ -332,25 +332,30 @@ A documentação interativa está disponível em `/` (Swagger UI configurado com
 
 ### `POST /analyze`
 Analisa manualmente um registro espacial e retorna o score calculado.
+![login](./../analyze.png)
 
-**Response 400** — validação FluentValidation falhou.
 
 ### `GET /region/{regionCode}?from=&to=`
 Lista assessments de uma região em um intervalo de tempo, ordenados por score decrescente.
-
-Parâmetros query: `from` e `to` (DateTime ISO 8601, obrigatórios).
+![login](./../risk_region.png)
 
 ### `GET /critical`
 Lista os 100 assessments com `RiskLevel = Critical` das últimas 24 horas, ordenados por score decrescente.
+![login](./../critical.png)
 
 ### `GET /regions/summary`
 Retorna o resumo agregado de risco por região, ordenado por `AverageRiskScore` decrescente.
+![login](./../summary.png)
 
 ### `GET /{id:guid}`
 Busca um assessment específico por ID. Retorna `404` se não encontrado.
+![login](./../riskid.png)
+
 
 ### `GET /health`
 Health check simples. Retorna `200 OK` com timestamp do servidor.
+![login](./../health.png)
+
 
 ---
 
