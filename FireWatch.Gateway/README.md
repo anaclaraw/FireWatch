@@ -178,14 +178,15 @@ Swagger disponível em: `http://localhost:5002`
 | `GET` | `/auth/me` | Dados do usuário autenticado | Sim |
 
 ### POST `/auth/register`
-
+![login](./../register.png)
 
 
 ### POST `/auth/login`
-
+![login](./../login.png)
 
 
 ### POST `/auth/refresh`
+![login](./../refresh.png)
 
 
 ---
