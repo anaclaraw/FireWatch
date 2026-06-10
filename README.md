@@ -2,6 +2,12 @@
 
 Sistema distribuído para monitoramento e análise de riscos de queimadas, desenvolvido em **ASP.NET Core 8**, utilizando arquitetura orientada a eventos, **RabbitMQ** para comunicação assíncrona e **PostgreSQL** para persistência.
 
+## Integrantes
+- Ana Clara Melo - RM 559021
+- David Murillo de Oliveira Soares - RM 559078
+- Lucas Serrano - RM555170
+- Yasmin Gonçalves Coelho - RM 559147
+
 ## Arquitetura
 
 A solução é composta por três microsserviços principais:
@@ -156,8 +162,36 @@ Após iniciar a solução:
 * A comunicação entre serviços ocorre de forma assíncrona via RabbitMQ.
 * Os detalhes de implementação, endpoints e regras de negócio estão documentados nos READMEs específicos de cada projeto.
 
-## Integrantes
-Ana Clara Melo - RM 559021
-David Murillo de Oliveira Soares - RM 559078
-Lucas Serrano - RM555170
-Yasmin Gonçalves Coelho - RM 559147
+
+
+
+## Testes nos Endpoints | Usando Bruno API
+
+## GET /auth/login - 200OK
+Autenticação e geração de token JWT
+![login](./login.png)
+
+## GET /auth/login - 401 
+Acesso negado — Request sem token Bearer
+![login](./semtoken.png)
+
+## POST /api/risk/analyze - 200OK
+Score calculado para um foco de calor
+![login](./analyze.png)
+
+## GET /api/risk/critical - 200OK
+Focos críticos — Alertas das últimas 24 horas
+![login](./critical.png)
+
+## GET /api/risk/region/BR-MT?from=2025-01-01T00:00:00Z&to=2025-12-31T23:59:59Z - 200OK
+Risco por região — Assessments filtrados por estado e período
+![login](./risk_region.png)
+
+## POST /api/ingestion/bulk - 200OK
+Ingestão em lote — Coleta de dados da NASA FIRMS
+![login](./bulk.png)
+
+## /api/risk/regions/summary
+Resumo por região — Agregação de risco por estado brasileiro
+![login](./summary.png)
+
