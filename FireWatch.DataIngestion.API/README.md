@@ -175,13 +175,13 @@ Swagger disponível em: `http://localhost:5000/swagger`
 | `GET` | `/api/ingestion/{id}` | Busca registro por ID | Sim |
 
 ### POST `/api/ingestion/single`
-
+![login](./single.png)
 
 ### POST `/api/ingestion/bulk`
-
+![login](./bulk.png)
 
 ### GET `/api/ingestion`
-
+![login](./ingestion.png)
 
 
 ---
